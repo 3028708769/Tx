@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <!--datasource-->
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="driverClass" value="com.mysql.jdbc.Driver"></property>
+        <property name="jdbcUrl" value="jdbc:mysql://localhost:3306/bank"></property>
+        <property name="user" value="root"></property>
+        <property name="password" value="root"></property>
+    </bean>
+    <!--dao-->
+    <bean id="accountDao" class="XH.web.Tx_Dao.AccountDaoImp">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <!--service-->
+    <bean id="accountService" class="XH.web.Tx_Service.AccountServiceImp">
+        <property name="accountDao" ref="accountDao"></property>
+    </bean>
+    <!--Service代理对象
+    TransactionProxyFactoryBean：代理对象工厂bean
+    接口  proxyInterfaces
+    目标对象    target
+    事务管理器   transactionManager
+    事务属性    transactionAttributes
+               props下的prop.key：确定哪些方法使用当前的事务配置
+               props下的prop.text：用于配置事务详情
+                             格式：PROPAGATION，ISOLATION，readOnly，-EXCEPTION，+EXCEPTION
+                                  传播行为       隔离级别    是否只读   发生异常时回滚事务  发生异常时提交事务
+                             例如：
+                             <prop key="transfer">PROPAGATION_REQUIRED,ISOLATION_DEFAULT,readOnly</prop>默认传播行为,默认隔离级别
+                             <prop key="transfer">PROPAGATION_REQUIRED,ISOLATION_DEFAULT</prop>默认传播行为,默认隔离级别,是否只读
+                             <prop key="transfer">PROPAGATION_REQUIRED,ISOLATION_DEFAULT,+java.lang.ArithmeticException</prop>默认传播行为,默认隔离级别,出现java.lang.ArithmeticException此异常时提交事务
+
+    -->
+    <bean id="proxyAccountService" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="target" ref="accountService"></property>
+        <property name="proxyInterfaces" value="XH.web.Tx_Service.AccountService"></property>
+        <property name="transactionManager" ref="Txmanager"></property>
+        <property name="transactionAttributes">
+            <props>
+                <prop key="transfer">PROPAGATION_REQUIRED,ISOLATION_DEFAULT</prop>
+            </props>
+        </property>
+    </bean>
+    <!--配置事务管理器
+    DataSourceTransactionManager jdbc原生态开发的事务管理器
+    dataSource  注入数据源
+    -->
+    <bean id="Txmanager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+</beans>
